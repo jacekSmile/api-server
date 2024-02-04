@@ -1,0 +1,24 @@
+[package]
+name = "api-server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.7.4"
+axum-extra = { version = "0.9.2", features = ["typed-header"] }
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tower-http = { version = "0.5.0", features = ["trace", "request-id", "util"] }
+tower = "0.4.13"
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "sqlite", "time"] }
+dotenv = "0.15.0"
+time = { version = "0.3.31", features = ["serde-human-readable"] }
+anyhow = "1.0.79"
+jsonwebtoken = "9.2.0"
+base64 = "0.21.7"
+
