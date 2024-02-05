@@ -3,6 +3,7 @@ use axum::{
     Router,
 };
 use tower_http::trace::TraceLayer;
+use tower_http::cors::CorsLayer;
 use tracing::info;
 
 mod db;
@@ -23,6 +24,7 @@ async fn main() {
         .route("/api/get_reason_list", get(api::info::get_reason_list))
         .route("/api/add_reason_list", post(api::info::add_reason_list))
         .route("/api/delete_reason_list", post(api::info::delete_reason_list))
+        .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 
