@@ -184,6 +184,7 @@ pub struct UpdateStudentInfoPayload {
     pub email: String,
     pub home_address: String,
     pub interesting: String,
+    pub honors: String,
     pub employment_intention: String,
 }
 
