@@ -271,18 +271,21 @@ pub async fn change_img(
     State(pool): State<Pool<Sqlite>>,
     mut multipart: Multipart,
 ) -> Result<(), ApiError> {
+    let mut image_data = Vec::new();
     
     while let Some(mut field) = multipart.next_field()
         .await? {
             while let Some(chunk) = field.chunk().await? {
-                sqlx::query("update users set image = ? where id = ?")
-                    .bind(&chunk.to_vec())
-                    .bind(&user_id)
-                    .execute(&pool)
-                    .await
-                    .map_err(ApiError::from)?;
+                image_data.extend_from_slice(&chunk);
             }
         }
+    
+    sqlx::query("update users set image = ? where id = ?")
+        .bind(&image_data)
+        .bind(&user_id)
+        .execute(&pool)
+        .await
+        .map_err(ApiError::from)?;
 
     Ok(())
 }

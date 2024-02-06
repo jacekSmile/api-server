@@ -4,6 +4,7 @@ use serde_json::json;
 use self::jwt::AuthError;
 
 mod jwt;
+pub mod utils;
 pub mod user;
 pub mod info;
 
