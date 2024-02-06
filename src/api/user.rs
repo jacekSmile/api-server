@@ -1,7 +1,7 @@
-use std::{env, vec};
+use std::env;
 
 use axum::{extract::State, Json};
-use axum::extract::{multipart, Multipart};
+use axum::extract::Multipart;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::Value;
 use sqlx::{Pool, Sqlite};
