@@ -10,24 +10,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  pre-release:
-    name: "Pre-Release"
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: "prepare-sqlx"
-        run: cargo install sqlx-cli
-      - name: "prepare-database"
-        run: sqlx database create --database-url=sqlite:data.db && sqlx migrate run --database-url=sqlite:data.db --source=migrations/
-      - name: "Build & test"
-        run: cargo build --release --verbose
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - uses: actions/checkout@v3
+      - uses: manoadamro/rust-release@v1
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
-          files: |
-            target/release/api-server
-            data.db
-            .env
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
