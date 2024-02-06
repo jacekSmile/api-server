@@ -18,7 +18,7 @@ jobs:
       - name: "prepare-sqlx"
         run: cargo install sqlx-cli
       - name: "prepare-database"
-        run: sqlx database create && sqlx migrate run
+        run: sqlx database create --database-url=sqlite:data.db && sqlx migrate run --database-url=sqlite:data.db --source=migrations/
       - name: "Build & test"
         run: cargo build --release --verbose
       - uses: "marvinpinto/action-automatic-releases@latest"
