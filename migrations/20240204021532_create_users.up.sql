@@ -16,7 +16,7 @@ insert into users (name, account, password, type_info, information, image) value
     '202203150323',
     '123456',
     0,
-    '{"name": "杨楚洁", "class_room": "软外2202班", "phone_number": "19856655987", "political_status": "团员", "email": "2@qq.om", "home_address": "翻斗花园22022020号", "interesting": "写代码", "employment_intention": "程序员"}',
+    '{"name": "杨楚洁", "class_room": "软外2202班", "phone_number": "19856655987", "political_status": "团员", "email": "2@qq.om", "home_address": "翻斗花园22022020号", "interesting": "写代码", "employment_intention": "程序员", "project_experience": "寒假软件设计", "honors": "CTF省一"}',
     null
 );
 

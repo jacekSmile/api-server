@@ -1,6 +1,7 @@
-use std::env;
+use std::{env, vec};
 
 use axum::{extract::State, Json};
+use axum::extract::{multipart, Multipart};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde_json::Value;
 use sqlx::{Pool, Sqlite};
@@ -44,6 +45,7 @@ pub struct StudentInfo {
     home_address: String,
     interesting: String,
     employment_intention: String,
+    honors: String,
     image: String,
 }
 
@@ -229,6 +231,57 @@ pub async fn change_user_info(
         .bind(&user_id)
         .execute(&pool)
         .await?;
+
+    Ok(())
+}
+
+#[derive(Deserialize)]
+pub struct ChangePasswordPayload {
+    old_password: String,
+    new_password: String,
+}
+
+pub async fn change_password(
+    Uid(user_id): Uid,
+    State(pool): State<Pool<Sqlite>>,
+    Json(payload): Json<ChangePasswordPayload>,
+) -> Result<(), ApiError> {
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    if user.password != payload.old_password {
+        return Err(ApiError::PermissionDenied);
+    } else {
+        sqlx::query("update users set password = ? where id = ?")
+            .bind(&payload.new_password)
+            .bind(&user_id)
+            .execute(&pool)
+            .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn change_img(
+    Uid(user_id): Uid,
+    State(pool): State<Pool<Sqlite>>,
+    mut multipart: Multipart,
+) -> Result<(), ApiError> {
+    
+    while let Some(mut field) = multipart.next_field()
+        .await? {
+            while let Some(chunk) = field.chunk().await? {
+                sqlx::query("update users set image = ? where id = ?")
+                    .bind(&chunk.to_vec())
+                    .bind(&user_id)
+                    .fetch_one(&pool)
+                    .await
+                    .map_err(ApiError::from)?;
+            }
+        }
 
     Ok(())
 }
