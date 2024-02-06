@@ -277,7 +277,7 @@ pub async fn change_img(
                 sqlx::query("update users set image = ? where id = ?")
                     .bind(&chunk.to_vec())
                     .bind(&user_id)
-                    .fetch_one(&pool)
+                    .execute(&pool)
                     .await
                     .map_err(ApiError::from)?;
             }
