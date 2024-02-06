@@ -10,11 +10,24 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  pre-release:
+    name: "Pre-Release"
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose
+      - name: "prepare-sqlx"
+        run: cargo install sqlx-cli
+      - name: "prepare-database"
+        run: sqlx database create && sqlx migrate run
+      - name: "Build & test"
+        run: cargo build --release --verbose
+      - uses "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            target/release/api-server
+            data.db
+            .env
