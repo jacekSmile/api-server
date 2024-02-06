@@ -21,7 +21,7 @@ jobs:
       
       - name: Compile
         id: compile
-        uses: rust-build/rust-build.action@v1.3.2
+        uses: rust-build/rust-build.action@v1.4.4
         with:
           RUSTTARGET: x86_64-pc-windows-gnu
           UPLOAD_MODE: none
@@ -35,7 +35,7 @@ jobs:
             
       - name: Compile
         id: compile2
-        uses: rust-build/rust-build.action@v1.3.2
+        uses: rust-build/rust-build.action@v1.4.4
         with:
           RUSTTARGET: x86_64-unknown-linux-musl
           UPLOAD_MODE: none
