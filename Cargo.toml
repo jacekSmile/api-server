@@ -25,8 +25,5 @@ time = { version = "0.3.31", features = ["serde-human-readable"] }
 anyhow = "1.0.79"
 jsonwebtoken = "9.2.0"
 base64 = "0.21.7"
-png = "0.17.11"
-resize = "0.8.4"
-rgb = "0.8.37"
 image = "0.24.8"
 

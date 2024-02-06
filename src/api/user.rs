@@ -185,6 +185,7 @@ pub struct UpdateStudentInfoPayload {
     pub home_address: String,
     pub interesting: String,
     pub honors: String,
+    pub project_experience: String,
     pub employment_intention: String,
 }
 
@@ -211,7 +212,9 @@ pub async fn change_user_info(
 
     let update_json_data: String = match user.type_info {
         0 => {
-            let update_json_data: UpdateStudentInfoPayload = serde_json::from_value(payload).unwrap();
+            let mut update_json_data: UpdateStudentInfoPayload = serde_json::from_value(payload).unwrap();
+            update_json_data.honors = update_json_data.honors.replace("\n", "<br/>");
+            update_json_data.project_experience = update_json_data.project_experience.replace("\n", "<br/>");
             serde_json::to_string(&update_json_data).unwrap()
         },
         1 => {
