@@ -19,34 +19,61 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
       
-      - name: Compile
-        id: compile
+      # windows support
+      - name: Compile for Windows
+        id: Windows
         uses: rust-build/rust-build.action@v1.4.4
         with:
           RUSTTARGET: x86_64-pc-windows-gnu
           UPLOAD_MODE: none
+          EXTRA_FILES: |
+            .env
+            data.db
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: Binary
           path: |
-            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
-            
-      - name: Compile
-        id: compile2
+            ${{ steps.Windows.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Windows.outputs.BUILT_CHECKSUM }}
+      
+      # linux support
+      - name: Compile for Linux
+        id: Linux
         uses: rust-build/rust-build.action@v1.4.4
         with:
           RUSTTARGET: x86_64-unknown-linux-musl
           UPLOAD_MODE: none
+          EXTRA_FILES: |
+            .env
+            data.db
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: Binary
           path: |
-            ${{ steps.compile2.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile2.outputs.BUILT_CHECKSUM }}
-            
+            ${{ steps.Linux.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Linux.outputs.BUILT_CHECKSUM }}
+      
+      # mac support
+      - name: Compile for Mac
+        id: Mac
+        uses: rust-build/rust-build.action@v1.4.4
+        with:
+          RUSTTARGET: x86_64-apple-darwin
+          UPLOAD_MODE: none
+          EXTRA_FILES: |
+            .env
+            data.db
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.Mac.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Mac.outputs.BUILT_CHECKSUM }}
+      
+      # final release
       - name: Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -55,7 +82,9 @@ jobs:
           prerelease: true
           title: "Development Build"
           files: |
-            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
-            ${{ steps.compile2.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile2.outputs.BUILT_CHECKSUM }}
+            ${{ steps.Windows.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Windows.outputs.BUILT_CHECKSUM }}
+            ${{ steps.Linux.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Linux.outputs.BUILT_CHECKSUM }}
+            ${{ steps.Mac.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Mac.outputs.BUILT_CHECKSUM }}
