@@ -26,7 +26,7 @@ jobs:
         with:
           RUSTTARGET: x86_64-pc-windows-gnu
           UPLOAD_MODE: none
-          EXTRA_FILES: ".env data.db"
+          EXTRA_FILES: 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -51,6 +51,22 @@ jobs:
             ${{ steps.Linux.outputs.BUILT_ARCHIVE }}
             ${{ steps.Linux.outputs.BUILT_CHECKSUM }}
       
+      # mac support
+      - name: Compile for Mac
+        id: Mac
+        uses: rust-build/rust-build.action@v1.4.4
+        with:
+          RUSTTARGET: aarch64-apple-darwin
+          UPLOAD_MODE: none
+          EXTRA_FILES: ".env data.db"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.Mac.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Mac.outputs.BUILT_CHECKSUM }}
+      
       # final release
       - name: Release
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -64,3 +80,5 @@ jobs:
             ${{ steps.Windows.outputs.BUILT_CHECKSUM }}
             ${{ steps.Linux.outputs.BUILT_ARCHIVE }}
             ${{ steps.Linux.outputs.BUILT_CHECKSUM }}
+            ${{ steps.Mac.outputs.BUILT_ARCHIVE }}
+            ${{ steps.Mac.outputs.BUILT_CHECKSUM }}
