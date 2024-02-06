@@ -173,15 +173,55 @@ pub async fn get_user_info(
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct UpdateStudentInfoPayload {
+    pub name: String,
+    pub class_room: String,
+    pub phone_number: String,
+    pub political_status: String,
+    pub email: String,
+    pub home_address: String,
+    pub interesting: String,
+    pub employment_intention: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateTeacherInfoPayload {
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateAdminInfoPayload {
+    pub name: String,
+}
+
 pub async fn change_user_info(
     Uid(user_id): Uid,
     State(pool): State<Pool<Sqlite>>,
-    Json(payload): Json<UserInfo>,
+    Json(payload): Json<Value>,
 ) -> Result<(), ApiError> {
-    let update_json_data = match payload {
-        UserInfo::Student(info) => serde_json::to_string(&info).unwrap(),
-        UserInfo::Teacher(info) => serde_json::to_string(&info).unwrap(),
-        UserInfo::Admin(info) => serde_json::to_string(&info).unwrap(),
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    let update_json_data: String = match user.type_info {
+        0 => {
+            let update_json_data: UpdateStudentInfoPayload = serde_json::from_value(payload).unwrap();
+            serde_json::to_string(&update_json_data).unwrap()
+        },
+        1 => {
+            let update_json_data: UpdateTeacherInfoPayload = serde_json::from_value(payload).unwrap();
+            serde_json::to_string(&update_json_data).unwrap()
+        }
+        2 => {
+            let update_json_data: UpdateAdminInfoPayload = serde_json::from_value(payload).unwrap();
+            serde_json::to_string(&update_json_data).unwrap()
+        },
+        _ => {
+            return Err(ApiError::Internal(anyhow::anyhow!("Unknown user type")));
+        }
     };
 
     sqlx::query("update users set information = ? where id = ?")
