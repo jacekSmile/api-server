@@ -13,7 +13,6 @@ use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_appender::rolling;
 use http_body_util::BodyExt;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 mod db;
