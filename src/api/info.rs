@@ -13,8 +13,15 @@ pub struct ListPayload {
 }
 
 #[derive(Deserialize)]
-pub struct AddReasonPayload {
+pub struct ReasonPayload {
     pub content: String,
+}
+
+#[derive(Deserialize)]
+pub struct AddAdvisePayload {
+    pub title: String,
+    pub content: String,
+    pub isanonymous: bool,
 }
 
 #[derive(Serialize)]
@@ -98,7 +105,7 @@ pub async fn get_reason_list(
 pub async fn add_reason_list(
     Uid(user_id): Uid,
     State(pool): State<Pool<Sqlite>>,
-    Json(payload): Json<AddReasonPayload>,
+    Json(payload): Json<ReasonPayload>,
 ) -> Result<(), ApiError> {
     let user = sqlx::query_as::<_, User>("select * from users where id = ?")
         .bind(&user_id)
@@ -127,7 +134,7 @@ pub async fn add_reason_list(
 pub async fn delete_reason_list(
     Uid(user_id): Uid,
     State(pool): State<Pool<Sqlite>>,
-    Json(payload): Json<AddReasonPayload>,
+    Json(payload): Json<ReasonPayload>,
 ) -> Result<(), ApiError> {
     let user = sqlx::query_as::<_, User>("select * from users where id = ?")
         .bind(&user_id)
@@ -142,6 +149,32 @@ pub async fn delete_reason_list(
     sqlx::query("delete from reasons where user_id = ? and content = ?;")
         .bind(&user_id)
         .bind(&payload.content)
+        .execute(&pool)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn send_suggestion(
+    Uid(user_id): Uid,
+    State(pool): State<Pool<Sqlite>>,
+    Json(payload): Json<AddAdvisePayload>,
+) -> Result<(), ApiError> {
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    if user.type_info != 0 {
+        return Err(ApiError::PermissionDenied);
+    }
+
+    sqlx::query("insert into advises (title, content, isanonymous, user_id) values (?, ?, ?, ?);")
+        .bind(&payload.title)
+        .bind(&payload.content)
+        .bind(&payload.isanonymous)
+        .bind(&user_id)
         .execute(&pool)
         .await?;
 

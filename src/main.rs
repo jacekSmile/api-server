@@ -51,6 +51,7 @@ async fn main() {
         .route("/api/delete_reason_list", post(api::info::delete_reason_list))
         .route("/api/change_password", post(api::user::change_password))
         .route("/api/change_img", post(api::user::change_img))
+        .route("/api/send_suggestion", post(api::info::send_suggestion))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http()
             .make_span_with(trace::DefaultMakeSpan::new().level(Level::DEBUG))

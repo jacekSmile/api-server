@@ -36,3 +36,12 @@ pub struct Reason {
     pub user_id: i32,
     pub content: String,
 }
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct Advise {
+    pub id: i32,
+    pub title: String,
+    pub content: String,
+    pub isanonymous: bool,
+    pub user_id: i32,
+}
