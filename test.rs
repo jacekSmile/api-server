@@ -1,3 +1,9 @@
+//! Run with
+//!
+//! ```not_rust
+//! cargo run -p example-consume-body-in-extractor-or-middleware
+//! ```
+
 use axum::{
     async_trait,
     body::{Body, Bytes},
@@ -5,65 +11,30 @@ use axum::{
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::post,
     Router,
 };
-use tower_http::trace::{self, TraceLayer};
-use tower_http::cors::CorsLayer;
-use tracing::{info, Level};
-use tracing_appender::rolling;
 use http_body_util::BodyExt;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing_subscriber::fmt::writer::MakeWriterExt;
-
-mod db;
-mod api;
 
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok();
-
-    // tracing_subscriber::registry()
-    //     .with(
-    //         tracing_subscriber::EnvFilter::try_from_default_env()
-    //             .unwrap_or_else(|_| "example_consume_body_in_extractor_or_middleware=debug".into()),
-    //     )
-    //     .with(tracing_subscriber::fmt::layer())
-    //     .init();
-
-    let log_file = rolling::daily("./logs", "debug")
-        .with_max_level(tracing::Level::DEBUG);
-
-    tracing_subscriber::fmt()
-        .with_writer(log_file)
-        .with_ansi(false)
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "example_consume_body_in_extractor_or_middleware=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let pool = db::establish_connection().await;
-
     let app = Router::new()
-        .route("/api/login", post(api::user::login))
-        .route("/api/get_user_info", get(api::user::get_user_info))
-        .route("/api/change_user_info", post(api::user::change_user_info))
-        .route("/api/get_teacher_list", post(api::info::get_teacher_list))
-        .route("/api/get_reason_list", get(api::info::get_reason_list))
-        .route("/api/add_reason_list", post(api::info::add_reason_list))
-        .route("/api/delete_reason_list", post(api::info::delete_reason_list))
-        .route("/api/change_password", post(api::user::change_password))
-        .route("/api/change_img", post(api::user::change_img))
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http()
-            .make_span_with(trace::DefaultMakeSpan::new().level(Level::DEBUG))
-            .on_response(trace::DefaultOnResponse::new().level(Level::DEBUG)),
-        )
-        .layer(middleware::from_fn(print_request_body))
-        .with_state(pool);
+        .route("/", post(handler))
+        .layer(middleware::from_fn(print_request_body));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    info!("server listening on {}", listener.local_addr().unwrap());
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -93,6 +64,10 @@ async fn buffer_request_body(request: Request) -> Result<Request, Response> {
 
 fn do_thing_with_request_body(bytes: Bytes) {
     tracing::debug!(body = ?bytes);
+}
+
+async fn handler(BufferRequestBody(body): BufferRequestBody) {
+    tracing::debug!(?body, "handler received body");
 }
 
 // extractor that shows how to consume the request body upfront

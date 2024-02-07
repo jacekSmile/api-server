@@ -1,4 +1,5 @@
 /target
 /.VSCodeCounter
+/logs
 Cargo.lock
 data.db*

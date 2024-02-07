@@ -55,7 +55,7 @@ impl IntoResponse for ApiError {
                 (StatusCode::BAD_REQUEST, body).into_response()
             }
             ApiError::PermissionDenied => {
-                let body = Json(json!({
+                let body: Json<serde_json::Value> = Json(json!({
                     "error": "Permission denied",
                 }));
                 (StatusCode::FORBIDDEN, body).into_response()
