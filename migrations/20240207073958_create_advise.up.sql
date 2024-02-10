@@ -3,7 +3,7 @@ create table advise (
     title text not null,
     content text not null,
     isanonymous boolean not null,
-    user_id integer not null,
+    user_id integer not null
 );
 
 create index advise_id_index on advise (id);
