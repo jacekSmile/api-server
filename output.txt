@@ -1,24 +1,3 @@
-create table users (
-    id integer primary key not null,
-    name text not null,
-    account text not null,
-    password text not null,
-    type_info integer not null,
-    information text not null,
-    image blob
-);
-
-create unique index users_account_index on users (account);
-
--- 测试数据
-insert into users (name, account, password, type_info, information, image) values (
-    '杨楚洁',
-    '202203150323',
-    '123456',
-    0,
-    '{"name": "杨楚洁", "class_room": "软外2202班", "phone_number": "19856655987", "political_status": "团员", "email": "2@qq.om", "home_address": "翻斗花园22022020号", "interesting": "写代码", "employment_intention": "程序员", "project_experience": "寒假软件设计", "honors": "CTF省一"}',
-    null
-);
 
 insert into users (name, account, password, type_info, information, image) values (
     '范菁',
@@ -1880,14 +1859,5 @@ insert into users (name, account, password, type_info, information, image) value
     '123456',
     1,
     '{"name": "田小凤", "department": "实验中心中心实验室", "office": "莫干山校区", "phone_number": "", "email": "717367013@qq.com", "time": "12:00-13:00,2:00-3:00"}',
-    null
-);
-
-insert into users (name, account, password, type_info, information, image) values (
-    'admin',
-    'admin',
-    '123456',
-    2,
-    '{"name": "admin"}',
     null
 );

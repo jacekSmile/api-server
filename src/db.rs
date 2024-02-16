@@ -21,16 +21,6 @@ pub struct User {
 }
 
 #[derive(sqlx::FromRow, serde::Serialize)]
-pub struct Teacher {
-    pub id: i32,
-    pub name: String,
-    pub department: String,
-    pub office: String,
-    pub phone_number: String,
-    pub email: String,
-}
-
-#[derive(sqlx::FromRow, serde::Serialize)]
 pub struct Reason {
     pub id: i32,
     pub user_id: i32,
@@ -44,4 +34,12 @@ pub struct Advise {
     pub content: String,
     pub isanonymous: bool,
     pub user_id: i32,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct Message {
+    pub from_user_id: i32,
+    pub to_user_id: i32,
+    pub content: String,
+    pub created_at: String,
 }

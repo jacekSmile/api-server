@@ -52,12 +52,23 @@ pub struct StudentInfo {
 
 #[derive(Serialize, Deserialize)]
 pub struct TeacherInfo {
-    name: String,
+    pub name: String,
+    pub department: String,
+    pub office: String,
+    pub phone_number: String,
+    pub email: String,
+    #[serde(skip_deserializing)]
+    pub user_id: i32,
+    #[serde(skip_serializing, rename = "time")]
+    pub time_duration: String,
+    // #[serde(skip_deserializing)]
+    // pub image: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct AdminInfo {
-    name: String,
+    pub name: String,
+    pub image: String,
 }
 
 impl StudentInfo {

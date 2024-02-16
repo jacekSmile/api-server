@@ -6,6 +6,7 @@ use self::jwt::AuthError;
 mod jwt;
 pub mod user;
 pub mod info;
+pub mod message;
 
 pub enum ApiError {
     LoginError,

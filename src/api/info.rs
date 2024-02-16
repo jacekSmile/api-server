@@ -1,10 +1,11 @@
 use axum::{extract::State, Json};
+use chrono::NaiveTime;
 use sqlx::{Pool, Sqlite};
 use serde::{Deserialize, Serialize};
 
-use crate::db::{Reason, Teacher, User};
+use crate::db::{Reason, User};
 
-use super::{jwt::Uid, ApiError};
+use super::{jwt::Uid, user::TeacherInfo, ApiError};
 
 #[derive(Deserialize)]
 pub struct ListPayload {
@@ -26,12 +27,12 @@ pub struct AddAdvisePayload {
 
 #[derive(Serialize)]
 pub struct TeacherList {
-    pub teachers: Vec<Teacher>,
+    pub teachers: Vec<TeacherInfo>,
     pub total: i32,
 }
 
 impl TeacherList {
-    pub fn new(teachers: Vec<Teacher>, total: i32) -> Self {
+    pub fn new(teachers: Vec<TeacherInfo>, total: i32) -> Self {
         Self {
             teachers,
             total,
@@ -62,17 +63,24 @@ pub async fn get_teacher_list(
         return Err(ApiError::InvalidParameter);
     }
 
-    let total = sqlx::query_scalar("select count(*) from teachers;")
+    let total = sqlx::query_scalar("select count(*) from users where type_info = 1;")
         .fetch_one(&pool)
         .await?;
 
-    let teachers = sqlx::query_as::<_, Teacher>("select * from teachers where id between ? and ?;")
+    let teacher_users = sqlx::query_as::<_, User>("select * from users where type_info = 1 limit ? offset ?;")
+        .bind(&payload.end - &payload.start + 1)
         .bind(&payload.start)
-        .bind(&payload.end)
         .fetch_all(&pool)
         .await?;
 
-    Ok(Json(TeacherList::new(teachers, total)))
+    Ok(Json(TeacherList::new(
+        teacher_users.into_iter().map(|user| {
+            let mut teacher: TeacherInfo = serde_json::from_str(&user.information).unwrap();
+            teacher.user_id = user.id;
+            teacher
+        }).collect()
+        , total
+    )))
 }
 
 pub async fn get_reason_list(
@@ -179,4 +187,63 @@ pub async fn send_suggestion(
         .await?;
 
     Ok(())
+}
+
+/// 测试当前是否在特定的时间区间内
+/// 时间区间用 12:00-14:00 这样的格式表示，多个时间区间用逗号分隔
+fn is_in_time_duration(time_duration: &str) -> bool {
+    let now_time = chrono::Local::now();
+    let now_time = now_time.time();
+    let time_duration = time_duration.split(",").collect::<Vec<&str>>();
+    for time in time_duration {
+        let time = time.split("-").collect::<Vec<&str>>();
+        let start_time = NaiveTime::parse_from_str(time[0], "%H:%M")
+            .expect("Failed to parse start time");
+        let end_time = NaiveTime::parse_from_str(time[1], "%H:%M")
+            .expect("Failed to parse end time");
+        if now_time >= start_time && now_time <= end_time {
+            return true;
+        }
+    }
+    false
+}
+
+pub async fn get_valid_teacher(
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<Json<Vec<TeacherInfo>>, ApiError> {
+    let teachers = sqlx::query_as::<_, User>("select * from users where type_info = 1;")
+        .fetch_all(&pool)
+        .await?;
+
+    let vaild_teachers: Vec<TeacherInfo> = teachers.into_iter().map(
+        |user| {
+        let mut teacher: TeacherInfo = serde_json::from_str(&user.information).unwrap();
+        teacher.user_id = user.id;
+        teacher
+    }).filter(|teacher| is_in_time_duration(&teacher.time_duration)).collect();
+
+    Ok(Json(vaild_teachers))
+}
+
+#[derive(Serialize)]
+pub struct BaseUserInfo {
+    pub user_id: i32,
+    pub username: String,
+    pub type_info: i32,
+}
+
+pub async fn get_user_list(
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<Json<Vec<BaseUserInfo>>, ApiError> {
+    let user_infos = sqlx::query_as::<_, User>("select * from users;")
+        .fetch_all(&pool)
+        .await?;
+
+    Ok(Json(user_infos.into_iter().map(|user: User| {
+        BaseUserInfo {
+            user_id: user.id,
+            username: user.name,
+            type_info: user.type_info,
+        }
+    }).collect()))
 }
