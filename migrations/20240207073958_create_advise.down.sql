@@ -1,3 +1,3 @@
-drop index advise_id_index;
+drop index advises_id_index;
 
-drop table advise;
+drop table advises;

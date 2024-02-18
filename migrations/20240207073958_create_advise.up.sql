@@ -1,4 +1,4 @@
-create table advise (
+create table advises (
     id integer primary key not null,
     title text not null,
     content text not null,
@@ -6,10 +6,10 @@ create table advise (
     user_id integer not null
 );
 
-create index advise_id_index on advise (id);
+create index advises_id_index on advises (id);
 
 -- 测试数据
-insert into advise (title, content, isanonymous, user_id) values (
+insert into advises (title, content, isanonymous, user_id) values (
     '不好意，你不适合',
     '不好意，你不适合',
     false,
