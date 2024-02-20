@@ -31,7 +31,35 @@ pub async fn get_current_turn (
         }
     }
 
-    Err(ApiError::InvalidParameter)
+    // 如果在时间之外要特殊判断
+    let first_turn_info = sqlx::query_as::<_, Turn>("select * from turn where turn_id = 1")
+        .fetch_one(pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    let first_end_datetime = NaiveTime::parse_from_str(&first_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
+        .expect("Failed to parse end time");
+
+    let second_turn_info = sqlx::query_as::<_, Turn>("select * from turn where turn_id = 2")
+        .fetch_one(pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    let second_start_datetime = NaiveTime::parse_from_str(&second_turn_info.start_datetime, "%Y-%m-%d %H:%M:%S")
+        .expect("Failed to parse start time");
+
+    let second_end_datetime = NaiveTime::parse_from_str(&second_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
+        .expect("Failed to parse end time");
+
+    if now_time < first_end_datetime {
+        return Ok(first_turn_info);
+    } else if now_time > second_start_datetime {
+        return Ok(second_turn_info);
+    } else if now_time > second_end_datetime {
+        return Ok(second_turn_info);
+    } else {
+        return Err(ApiError::Internal(anyhow::anyhow!("Failed to get current turn")));
+    }
 }
 
 #[derive(Deserialize)]
@@ -138,15 +166,15 @@ pub async fn send_sign (
         .map_err(ApiError::from)?;
 
     match user.type_info {
-        1 => {
-            sqlx::query("update matchs set sign_info = ? where student_id = ?")
+        0 => {
+            sqlx::query("update matchs set student_sign_info = ? where student_id = ?")
                 .bind(image_data)
                 .bind(user_id)
                 .execute(&pool)
                 .await?;
         }
-        2 => {
-            sqlx::query("update matchs set sign_info = ? where student_id = ?")
+        1 => {
+            sqlx::query("update matchs set teacher_sign_info = ? where teacher_id = ?")
                 .bind(image_data)
                 .bind(user_id)
                 .execute(&pool)
@@ -291,7 +319,7 @@ pub struct SetTimePayload {
 pub async fn set_start_end_date (
     State(pool): State<Pool<Sqlite>>,
     Uid(user_id): Uid,
-    Json(payload): Json<SetTimePayload>,
+    Json(payloads): Json<Vec<SetTimePayload>>,
 ) -> Result<(), ApiError> {
     let user = sqlx::query_as::<_, User>("select * from users where id = ?")
         .bind(&user_id)
@@ -303,12 +331,14 @@ pub async fn set_start_end_date (
         return Err(ApiError::PermissionDenied);
     }
 
-    sqlx::query("update matchs set start_datatime = ?, end_datetime where turn_id = ?")
-        .bind(&payload.start_datetime)
-        .bind(&payload.end_datetime)
-        .bind(&payload.turn)
-        .execute(&pool)
-        .await?;
+    for payload in payloads {
+        sqlx::query("update matchs set start_datatime = ?, end_datetime where turn_id = ?")
+            .bind(&payload.start_datetime)
+            .bind(&payload.end_datetime)
+            .bind(&payload.turn)
+            .execute(&pool)
+            .await?;
+    }
     
     Ok(())
 }
@@ -372,6 +402,36 @@ pub async fn get_select (
         .map_err(ApiError::from)?;
 
     let selections = match user.type_info {
+        0 => {
+            let match_records = sqlx::query_as::<_, Match>("select * from matchs where student_id = ?")
+                .bind(&user_id)
+                .fetch_all(&pool)
+                .await
+                .map_err(ApiError::from)?;
+
+            let mut selections = Vec::new();
+
+            for match_record in match_records {
+                    let single_selection = SingleSelectionInfoWithName {
+                        turns: match_record.turn_id,
+                        status: match_record.status_info,
+                        student_name: sqlx::query_as::<_, User>("select * from users where id = ?")
+                            .bind(&match_record.student_id)
+                            .fetch_one(&pool)
+                            .await
+                            .map_err(ApiError::from)?
+                            .name,
+                        teacher_name: sqlx::query_as::<_, User>("select * from users where id = ?")
+                            .bind(&match_record.teacher_id)
+                            .fetch_one(&pool)
+                            .await
+                            .map_err(ApiError::from)?
+                            .name,
+                    };
+                    selections.push(single_selection);   
+            }
+            selections
+        }
         1 => {
             let match_records = sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ?")
                 .bind(&user_id)

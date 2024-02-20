@@ -8,7 +8,7 @@ create table matchs (
     teacher_sign_info blob,
     student_sign_info blob,
     status_info integer not null,
-    turn_id integer not null,
+    turn_id integer not null
 );
 
 create index matchs_id_index on matchs (id);

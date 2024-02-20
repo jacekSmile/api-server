@@ -30,7 +30,7 @@ pub struct AuthBody {
 #[derive(Serialize, Deserialize)]
 pub enum UserInfo {
     Student(StudentInfo),
-    Teacher(TeacherInfo),
+    Teacher(TeacherInfoWithImage),
     Admin(AdminInfo),
 }
 
@@ -66,10 +66,24 @@ pub struct TeacherInfo {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct TeacherInfoWithImage {
+    pub name: String,
+    pub department: String,
+    pub office: String,
+    pub phone_number: String,
+    pub email: String,
+    #[serde(skip_deserializing)]
+    pub user_id: i32,
+    #[serde(rename = "time")]
+    pub time_duration: String,
+    pub image: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct AdminInfo {
     pub name: String,
     pub time_duration: String,
-    // pub image: String,
+    pub image: String,
 }
 
 impl StudentInfo {
@@ -91,7 +105,7 @@ impl StudentInfo {
 }
 
 impl TeacherInfo {
-    fn new(json_data: &String, image: &String) -> Self {
+    fn new(json_data: &String, image: &String) -> TeacherInfoWithImage {
         let mut value: Result<Value, _> = serde_json::from_str(json_data);
 
         if let Ok(obj) = value.as_mut() {
@@ -141,7 +155,7 @@ pub async fn login(
     let user: User = match user {
         Ok(user) => user,
         Err(sqlx::Error::RowNotFound) => {
-            return Err(ApiError::LoginError); // Pass an error message to the `ApiError::from()` function.
+            return Err(ApiError::LoginError);
         },
         Err(e) => return Err(ApiError::from(e)),
     };

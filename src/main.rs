@@ -67,6 +67,7 @@ async fn main() {
         .route("/api/get_select", get(api::chouxiang::get_select))
         .route("/api/send_two_way_table", post(api::chouxiang::send_two_way_table))
         .route("/api/get_two_way_table", post(api::chouxiang::get_two_way_table))
+        .route("/api/get_suggestions", get(api::info::get_suggestions))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http()
             .make_span_with(trace::DefaultMakeSpan::new().level(Level::DEBUG))

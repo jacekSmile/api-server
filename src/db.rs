@@ -34,6 +34,7 @@ pub struct Advise {
     pub content: String,
     pub isanonymous: bool,
     pub user_id: i32,
+    pub created_at: String,
 }
 
 #[derive(sqlx::FromRow, serde::Serialize)]

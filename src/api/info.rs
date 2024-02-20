@@ -3,7 +3,7 @@ use chrono::NaiveTime;
 use sqlx::{Pool, Sqlite};
 use serde::{Deserialize, Serialize};
 
-use crate::db::{Reason, User};
+use crate::db::{Advise, Reason, User};
 
 use super::{jwt::Uid, user::TeacherInfo, ApiError};
 
@@ -163,7 +163,7 @@ pub async fn delete_reason_list(
     Ok(())
 }
 
-pub async fn send_suggestion(
+pub async fn send_suggestion (
     Uid(user_id): Uid,
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<AddAdvisePayload>,
@@ -187,6 +187,54 @@ pub async fn send_suggestion(
         .await?;
 
     Ok(())
+}
+
+#[derive(Serialize)]
+pub struct SuggestionDetail {
+    pub who: String,
+    pub title: String,
+    pub content: String,
+    pub created_at: String,
+}
+
+pub async fn get_suggestions (
+    Uid(user_id): Uid,
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<Json<Vec<SuggestionDetail>>, ApiError> {
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    if user.type_info != 2 {
+        return Err(ApiError::PermissionDenied);
+    }
+
+    let suggestions = sqlx::query_as::<_, Advise>("select * from advises")
+        .fetch_all(&pool)
+        .await?;
+
+    let mut suggestion_details = Vec::new();
+    for suggestion in suggestions {
+        suggestion_details.push(SuggestionDetail {
+            who: if suggestion.isanonymous {
+                sqlx::query_as::<_, User>("select * from users where id = ?")
+                    .bind(&user_id)
+                    .fetch_one(&pool)
+                    .await
+                    .map_err(ApiError::from)?
+                    .name
+            } else {
+                String::from("匿名")
+            },
+            title: suggestion.title,
+            content: suggestion.content,
+            created_at: suggestion.created_at,
+        });
+    }
+
+    Ok(Json(suggestion_details))
 }
 
 /// 测试当前是否在特定的时间区间内
