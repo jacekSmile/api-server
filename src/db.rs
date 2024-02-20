@@ -59,7 +59,7 @@ pub struct Match {
     pub turn_id: i32,
 }
 
-#[derive(sqlx::FromRow, serde::Serialize)]
+#[derive(sqlx::FromRow, serde::Serialize, Debug)]
 pub struct Turn {
     pub id: i32,
     pub start_datetime: String,

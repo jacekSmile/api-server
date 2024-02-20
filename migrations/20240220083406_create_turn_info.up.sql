@@ -18,5 +18,5 @@ insert into turn (start_datetime, end_datetime, turn_id) values (
 insert into turn (start_datetime, end_datetime, turn_id) values (
     '2021-04-27 02:44:32',
     '2024-02-20 08:34:06',
-    1
+    2
 );

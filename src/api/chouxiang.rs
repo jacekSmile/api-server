@@ -375,7 +375,7 @@ pub async fn withdraw (
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct SingleSelectionInfoWithName {
     pub turns: i32,
     pub status: i32,
@@ -401,113 +401,54 @@ pub async fn get_select (
         .await
         .map_err(ApiError::from)?;
 
-    let selections = match user.type_info {
+    let match_records: Vec<Match> = match user.type_info {
         0 => {
-            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where student_id = ?")
-                    .bind(&user_id)
-                    .fetch_all(&pool)
-                    .await
-                    .map_err(ApiError::from) {
-                        Ok(match_records) => match_records,
-                        Err(_) => Vec::new(),
-                    };
-
-            let mut selections = Vec::new();
-
-            for match_record in match_records {
-                    let single_selection = SingleSelectionInfoWithName {
-                        turns: match_record.turn_id,
-                        status: match_record.status_info,
-                        student_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                            .bind(&match_record.student_id)
-                            .fetch_one(&pool)
-                            .await
-                            .map_err(ApiError::from)?
-                            .name,
-                        teacher_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                            .bind(&match_record.teacher_id)
-                            .fetch_one(&pool)
-                            .await
-                            .map_err(ApiError::from)?
-                            .name,
-                    };
-                    selections.push(single_selection);   
-            }
-            selections
-        }
-        1 => {
-            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ?")
+            sqlx::query_as::<_, Match>("select * from matchs where student_id = ?")
                 .bind(&user_id)
                 .fetch_all(&pool)
                 .await
-                .map_err(ApiError::from) {
-                    Ok(match_records) => match_records,
-                    Err(_) => Vec::new(),
-                };
-
-            let mut selections = Vec::new();
-
-            for match_record in match_records {
-
-                let single_selection = SingleSelectionInfoWithName {
-                    turns: match_record.turn_id,
-                    status: match_record.status_info,
-                    student_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                        .bind(&match_record.student_id)
-                        .fetch_one(&pool)
-                        .await
-                        .map_err(ApiError::from)?
-                        .name,
-                    teacher_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                        .bind(&match_record.teacher_id)
-                        .fetch_one(&pool)
-                        .await
-                        .map_err(ApiError::from)?
-                        .name,
-                };
-                selections.push(single_selection);
-            }
-
-            selections
+                .unwrap_or_else(|_| Vec::new())
         }
-        2 => {
-            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where status_info >= 3")
+        1 => {
+            sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ?")
+                .bind(&user_id)
                 .fetch_all(&pool)
                 .await
-                .map_err(ApiError::from) {
-                    Ok(match_records) => match_records,
-                    Err(_) => Vec::new(),
-                };
-
-            let mut selections = Vec::new();
-
-            for match_record in match_records {
-
-                let single_selection = SingleSelectionInfoWithName {
-                    turns: match_record.turn_id,
-                    status: match_record.status_info,
-                    student_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                        .bind(&match_record.student_id)
-                        .fetch_one(&pool)
-                        .await
-                        .map_err(ApiError::from)?
-                        .name,
-                    teacher_name: sqlx::query_as::<_, User>("select * from users where id = ?")
-                        .bind(&match_record.teacher_id)
-                        .fetch_one(&pool)
-                        .await
-                        .map_err(ApiError::from)?
-                        .name,
-                };
-                selections.push(single_selection);
-            }
-
-            selections
+                .unwrap_or_else(|_| Vec::new())
+        }
+        2 => {
+            sqlx::query_as::<_, Match>("select * from matchs where status_info >= 3")
+                .fetch_all(&pool)
+                .await
+                .unwrap_or_else(|_| Vec::new())
         }
         _ => {
             return Err(ApiError::PermissionDenied)
         }
     };
+
+    let mut selections = Vec::new();
+
+    for match_record in match_records {
+
+        let single_selection = SingleSelectionInfoWithName {
+            turns: match_record.turn_id,
+            status: match_record.status_info,
+            student_name: sqlx::query_as::<_, User>("select * from users where id = ?")
+                .bind(&match_record.student_id)
+                .fetch_one(&pool)
+                .await
+                .map_err(ApiError::from)?
+                .name,
+            teacher_name: sqlx::query_as::<_, User>("select * from users where id = ?")
+                .bind(&match_record.teacher_id)
+                .fetch_one(&pool)
+                .await
+                .map_err(ApiError::from)?
+                .name,
+        };
+        selections.push(single_selection);
+    }
 
     let turn = get_current_turn(&pool).await?;
 
