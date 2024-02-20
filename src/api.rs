@@ -7,6 +7,7 @@ mod jwt;
 pub mod user;
 pub mod info;
 pub mod message;
+pub mod chouxiang;
 
 pub enum ApiError {
     LoginError,

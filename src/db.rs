@@ -43,3 +43,25 @@ pub struct Message {
     pub content: String,
     pub created_at: String,
 }
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct Match {
+    pub id: i32,
+    pub student_id: i32,
+    pub teacher_id: i32,
+    pub teacher_reason: String,
+    pub admin_reason: String,
+    pub teacher_sign_info: Vec<u8>,
+    pub student_sign_info: Vec<u8>,
+    pub table_info: String,
+    pub status_info: i32,
+    pub turn_id: i32,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct Turn {
+    pub id: i32,
+    pub start_datetime: String,
+    pub end_datetime: String,
+    pub turn_id: i32,
+}

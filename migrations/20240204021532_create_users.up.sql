@@ -1888,6 +1888,6 @@ insert into users (name, account, password, type_info, information, image) value
     'admin',
     '123456',
     2,
-    '{"name": "admin"}',
+    '{"name": "admin", "time": "12:00-13:00,2:00-3:00"}',
     null
 );

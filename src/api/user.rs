@@ -68,11 +68,12 @@ pub struct TeacherInfo {
 #[derive(Serialize, Deserialize)]
 pub struct AdminInfo {
     pub name: String,
-    pub image: String,
+    pub time_duration: String,
+    // pub image: String,
 }
 
 impl StudentInfo {
-    fn new(json_data: &String, image: &String, student_id: &String) -> Self {
+    pub fn new(json_data: &String, image: &String, student_id: &String) -> Self {
         let mut value: Result<Value, _> = serde_json::from_str(json_data);
 
         if let Ok(obj) = value.as_mut() {
