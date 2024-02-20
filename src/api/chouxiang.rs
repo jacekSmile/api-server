@@ -403,11 +403,14 @@ pub async fn get_select (
 
     let selections = match user.type_info {
         0 => {
-            let match_records = sqlx::query_as::<_, Match>("select * from matchs where student_id = ?")
-                .bind(&user_id)
-                .fetch_all(&pool)
-                .await
-                .map_err(ApiError::from)?;
+            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where student_id = ?")
+                    .bind(&user_id)
+                    .fetch_all(&pool)
+                    .await
+                    .map_err(ApiError::from) {
+                        Ok(match_records) => match_records,
+                        Err(_) => Vec::new(),
+                    };
 
             let mut selections = Vec::new();
 
@@ -433,11 +436,14 @@ pub async fn get_select (
             selections
         }
         1 => {
-            let match_records = sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ?")
+            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ?")
                 .bind(&user_id)
                 .fetch_all(&pool)
                 .await
-                .map_err(ApiError::from)?;
+                .map_err(ApiError::from) {
+                    Ok(match_records) => match_records,
+                    Err(_) => Vec::new(),
+                };
 
             let mut selections = Vec::new();
 
@@ -465,10 +471,13 @@ pub async fn get_select (
             selections
         }
         2 => {
-            let match_records = sqlx::query_as::<_, Match>("select * from matchs where status_info >= 3")
+            let match_records = match sqlx::query_as::<_, Match>("select * from matchs where status_info >= 3")
                 .fetch_all(&pool)
                 .await
-                .map_err(ApiError::from)?;
+                .map_err(ApiError::from) {
+                    Ok(match_records) => match_records,
+                    Err(_) => Vec::new(),
+                };
 
             let mut selections = Vec::new();
 
