@@ -332,7 +332,7 @@ pub async fn set_start_end_date (
     }
 
     for payload in payloads {
-        sqlx::query("update matchs set start_datatime = ?, end_datetime where turn_id = ?")
+        sqlx::query("update matchs set start_datatime = ?, end_datetime = ? where turn_id = ?")
             .bind(&payload.start_datetime)
             .bind(&payload.end_datetime)
             .bind(&payload.turn)

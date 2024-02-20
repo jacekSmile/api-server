@@ -82,6 +82,7 @@ pub struct TeacherInfoWithImage {
 #[derive(Serialize, Deserialize)]
 pub struct AdminInfo {
     pub name: String,
+    #[serde(rename = "time")]
     pub time_duration: String,
     pub image: String,
 }
