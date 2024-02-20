@@ -287,7 +287,7 @@ pub async fn set_exam_time (
     let user_info: String = match user.type_info {
         1 => {
             let mut teacher_info: TeacherInfo = serde_json::from_str(&user.information).unwrap();
-            teacher_info.time_duration = payload.start_time.clone() + "-" + &payload.end_time;
+            teacher_info.time = payload.start_time.clone() + "-" + &payload.end_time;
             serde_json::to_string(&teacher_info).unwrap()
         }
         2 => {

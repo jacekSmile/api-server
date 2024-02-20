@@ -59,8 +59,7 @@ pub struct TeacherInfo {
     pub email: String,
     #[serde(skip_deserializing)]
     pub user_id: i32,
-    #[serde(skip_serializing, rename = "time")]
-    pub time_duration: String,
+    pub time: String,
     // #[serde(skip_deserializing)]
     // pub image: String,
 }
