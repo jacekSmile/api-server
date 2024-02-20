@@ -268,7 +268,7 @@ pub async fn get_valid_teacher(
         let mut teacher: TeacherInfo = serde_json::from_str(&user.information).unwrap();
         teacher.user_id = user.id;
         teacher
-    }).filter(|teacher| is_in_time_duration(&teacher.time)).collect();
+    }).filter(|teacher| is_in_time_duration(&teacher.time_duration)).collect();
 
     Ok(Json(vaild_teachers))
 }
