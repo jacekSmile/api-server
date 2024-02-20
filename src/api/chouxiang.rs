@@ -240,27 +240,47 @@ pub async fn exam_selection (
         .await
         .map_err(ApiError::from)?;
 
+    let pass_status: i32;
+    let fail_status: i32;
+
     match user.type_info {
         1 => {
-            for selection_id in &payload.selection_ids {
-                sqlx::query("update matchs set status_info = ? where id = ?")
-                    .bind(if payload.is_pass { 1 } else { 2 })
-                    .bind(selection_id)
-                    .execute(&pool)
-                    .await?;
-            }
+            pass_status = 1;
+            fail_status = 2;
         }
         2 => {
-            for selection_id in &payload.selection_ids {
-                sqlx::query("update matchs set status_info = ? where id = ?")
-                    .bind(if payload.is_pass { 4 } else { 5 })
-                    .bind(selection_id)
-                    .execute(&pool)
-                    .await?;
-            }
+            pass_status = 3;
+            fail_status = 4;
         }
         _ => {
             return Err(ApiError::PermissionDenied);
+        }
+    }
+
+    let user_type = if user.type_info == 1 {"teacher"} else {"admin"};
+    let sql_payload = format!("update matchs set {}_reason = ?, status_info = ? where id = ?", user_type);
+
+    for selection_id in &payload.selection_ids {
+        let match_record = sqlx::query_as::<_, Match>("select * from matchs where id = ?")
+            .bind(selection_id)
+            .fetch_one(&pool)
+            .await
+            .map_err(ApiError::from)?;
+
+        sqlx::query(&sql_payload)
+            .bind(&payload.reason)
+            .bind(if payload.is_pass {pass_status} else {fail_status})
+            .bind(selection_id)
+            .execute(&pool)
+            .await?;
+
+        if !payload.is_pass {
+            sqlx::query("insert into messages (from_user_id, to_user_id, content) values (?, ?, ?);")
+                .bind(&user_id)
+                .bind(&match_record.student_id)
+                .bind(format!("你的申请被{}驳回，理由是{}", user_type, &payload.reason))
+                .execute(&pool)
+                .await?;
         }
     }
     
