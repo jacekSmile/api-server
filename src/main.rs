@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use tokio::signal;
 use tower_http::trace::{self, TraceLayer};
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
@@ -18,8 +19,9 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 mod db;
 mod api;
 
-#[tokio::main]
-async fn main() {
+use anyhow::{anyhow, Result};
+
+async fn start_server() -> Result<()> {
     dotenv::dotenv().ok();
 
     // tracing_subscriber::registry()
@@ -79,8 +81,53 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    info!("server listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+
+    Err(anyhow!("BANG"))
+}
+
+#[tokio::main]
+async fn main() {
+    match start_server().await {
+        Err(e) => {
+            info!("Server failed to start: {:?}", e);
+        }
+        Ok(_) => {
+            info!("Server started");
+        }
+    }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            println!("Ctrl+C received");
+        },
+        _ = terminate => {
+            println!("Terminate signal received");
+        },
+    }
 }
 
 // middleware that shows how to consume the request body upfront
