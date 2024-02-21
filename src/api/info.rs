@@ -245,9 +245,9 @@ fn is_in_time_duration(time_duration: &str) -> bool {
     let time_duration = time_duration.split(",").collect::<Vec<&str>>();
     for time in time_duration {
         let time = time.split("-").collect::<Vec<&str>>();
-        let start_time = NaiveTime::parse_from_str(time[0], "%H:%M")
+        let start_time = NaiveTime::parse_from_str(time[0], "%H:%M:%S")
             .expect("Failed to parse start time");
-        let end_time = NaiveTime::parse_from_str(time[1], "%H:%M")
+        let end_time = NaiveTime::parse_from_str(time[1], "%H:%M:%S")
             .expect("Failed to parse end time");
         if now_time >= start_time && now_time <= end_time {
             return true;
