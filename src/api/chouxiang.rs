@@ -1,7 +1,7 @@
 use std::env;
 
 use axum::{extract::{Multipart, State}, Json};
-use chrono::NaiveTime;
+use chrono::NaiveDateTime;
 use sqlx::{Pool, Sqlite};
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +13,8 @@ pub async fn get_current_turn (
     pool: &Pool<Sqlite>,
 ) -> Result<Turn, ApiError> {
     let now_time = chrono::Local::now();
-    let now_time = now_time.time();
+    let now_time = NaiveDateTime::parse_from_str(&now_time.format("%Y-%m-%d %H:%M:%S").to_string(), "%Y-%m-%d %H:%M:%S")
+        .expect("Failed to parse now time");
 
     let turns_info = sqlx::query_as::<_, Turn>("select * from turn")
         .fetch_all(pool)
@@ -21,9 +22,10 @@ pub async fn get_current_turn (
         .map_err(ApiError::from)?;
 
     for turn_info in turns_info {
-        let start_time = NaiveTime::parse_from_str(&turn_info.start_datetime, "%Y-%m-%d %H:%M:%S")
+        let start_time = NaiveDateTime::parse_from_str(&turn_info.start_datetime, "%Y-%m-%d %H:%M:%S")
             .expect("Failed to parse start time");
-        let end_time = NaiveTime::parse_from_str(&turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
+
+        let end_time = NaiveDateTime::parse_from_str(&turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
             .expect("Failed to parse end time");
 
         if now_time >= start_time && now_time <= end_time {
@@ -37,7 +39,7 @@ pub async fn get_current_turn (
         .await
         .map_err(ApiError::from)?;
 
-    let first_end_datetime = NaiveTime::parse_from_str(&first_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
+    let first_end_datetime = NaiveDateTime::parse_from_str(&first_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
         .expect("Failed to parse end time");
 
     let second_turn_info = sqlx::query_as::<_, Turn>("select * from turn where turn_id = 2")
@@ -45,10 +47,10 @@ pub async fn get_current_turn (
         .await
         .map_err(ApiError::from)?;
 
-    let second_start_datetime = NaiveTime::parse_from_str(&second_turn_info.start_datetime, "%Y-%m-%d %H:%M:%S")
+    let second_start_datetime = NaiveDateTime::parse_from_str(&second_turn_info.start_datetime, "%Y-%m-%d %H:%M:%S")
         .expect("Failed to parse start time");
 
-    let second_end_datetime = NaiveTime::parse_from_str(&second_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
+    let second_end_datetime = NaiveDateTime::parse_from_str(&second_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
         .expect("Failed to parse end time");
 
     if now_time < first_end_datetime {

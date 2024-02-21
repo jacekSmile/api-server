@@ -220,7 +220,7 @@ pub async fn get_suggestions (
         suggestion_details.push(SuggestionDetail {
             who: if suggestion.isanonymous {
                 sqlx::query_as::<_, User>("select * from users where id = ?")
-                    .bind(&user_id)
+                    .bind(&suggestion.user_id)
                     .fetch_one(&pool)
                     .await
                     .map_err(ApiError::from)?
