@@ -2,7 +2,7 @@ use std::env;
 
 use axum::{extract::{Multipart, State}, Json};
 use chrono::NaiveDateTime;
-use sqlx::{Pool, Sqlite};
+use sqlx::{Error, Pool, Sqlite};
 use serde::{Deserialize, Serialize};
 
 use crate::db::{Match, Turn, User};
@@ -672,14 +672,34 @@ pub async fn set_matched_data (
     if user.type_info != 2 {
         return Err(ApiError::PermissionDenied);
     }
-
+    let turn_id = get_current_turn(&pool).await?.turn_id;
     for match_info in payload {
-        sqlx::query("insert into matchs (student_id, teacher_id, status_info, turn_id) values (?, ?, 0, ?)")
-            .bind(match_info.student.0)
-            .bind(match_info.teacher.1)
-            .bind(get_current_turn(&pool).await?.turn_id)
-            .execute(&pool)
-            .await?;
+        let match_record = sqlx::query_as::<_, Match>("select * from matchs where student_id = ? and turn_id = ?")
+            .bind(&match_info.student.0)
+            .bind(&turn_id)
+            .fetch_one(&pool)
+            .await;
+
+        match match_record {
+            Ok(match_record) => {
+                sqlx::query("update matchs set student_id = ?, teacher_id = ? where student_id = ? and teacher_id = ? and turn_id = ?")
+                    .bind(match_info.student.0)
+                    .bind(match_info.teacher.0)
+                    .bind(match_record.student_id)
+                    .bind(match_record.teacher_id)
+                    .bind(match_record.turn_id)
+                    .execute(&pool)
+                    .await?;
+            }
+            Err(_) => {
+                sqlx::query("insert into matchs (student_id, teacher_id, status_info, turn_id) values (?, ?, 0, ?)")
+                    .bind(match_info.student.0)
+                    .bind(match_info.teacher.0)
+                    .bind(&turn_id)
+                    .execute(&pool)
+                    .await?;
+            }
+        }
     }
 
     Ok(())
