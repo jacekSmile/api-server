@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 
 use axum::{extract::{Multipart, State}, Json};
@@ -53,14 +54,14 @@ pub async fn get_current_turn (
     let second_end_datetime = NaiveDateTime::parse_from_str(&second_turn_info.end_datetime, "%Y-%m-%d %H:%M:%S")
         .expect("Failed to parse end time");
 
-    if now_time < first_end_datetime {
-        return Ok(first_turn_info);
-    } else if now_time > second_start_datetime {
-        return Ok(second_turn_info);
-    } else if now_time > second_end_datetime {
-        return Ok(second_turn_info);
+    return if now_time < first_end_datetime {
+        Ok(first_turn_info)
+    } else if now_time < second_start_datetime {
+        Ok(second_turn_info)
+    } else if now_time < second_end_datetime {
+        Ok(second_turn_info)
     } else {
-        return Err(ApiError::Internal(anyhow::anyhow!("Failed to get current turn")));
+        Ok(first_turn_info)
     }
 }
 
@@ -99,7 +100,7 @@ pub async fn send_student_info (
 
 #[derive(Deserialize)]
 pub struct SendStudentIdPayload {
-    pub student_id: i32,
+    pub selection_id: i32,
 }
 
 pub async fn get_student_info (
@@ -117,17 +118,17 @@ pub async fn get_student_info (
         return Err(ApiError::PermissionDenied);
     }
 
-    let if_student_exist = sqlx::query_as::<_, User>("select * from matchs where teacher_id = ? and student_id = ?")
+    let match_record = sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ? and student_id = ?")
         .bind(&user_id)
-        .bind(payload.student_id)
+        .bind(payload.selection_id)
         .fetch_one(&pool)
         .await
         .map_err(ApiError::from);
 
-    match if_student_exist {
-        Ok(_) => {
+    match match_record {
+        Ok(match_record) => {
             let student_info = sqlx::query_as::<_, User>("select * from users where id = ?")
-                .bind(payload.student_id)
+                .bind(match_record.student_id)
                 .fetch_one(&pool)
                 .await
                 .map_err(ApiError::from)?;
@@ -403,6 +404,7 @@ pub struct SingleSelectionInfoWithName {
     pub status: i32,
     pub student_name: String,
     pub teacher_name: String,
+    pub selection_id: i32,
 }
 
 #[derive(Serialize)]
@@ -468,6 +470,7 @@ pub async fn get_select (
                 .await
                 .map_err(ApiError::from)?
                 .name,
+            selection_id: match_record.id,
         };
         selections.push(single_selection);
     }
@@ -531,7 +534,7 @@ pub async fn send_two_way_table (
         return Err(ApiError::PermissionDenied);
     }
 
-    let result = sqlx::query("update matchs set table_info = ? where id = ?")
+    let result = sqlx::query("update matchs set table_info = ?, status_info = 3 where id = ?")
         .bind(serde_json::to_string(&payload).unwrap())
         .bind(payload.selection_id)
         .execute(&pool)
@@ -554,7 +557,7 @@ pub async fn get_two_way_table (
         .await
         .map_err(ApiError::from)?;
 
-    if user.type_info != 1 {
+    if user.type_info != 2 {
         return Err(ApiError::PermissionDenied);
     }
 
@@ -597,4 +600,51 @@ pub async fn get_two_way_table (
     };
 
     Ok(Json(two_way_table_info))
+}
+
+pub async fn start_second(
+    State(pool): State<Pool<Sqlite>>,
+    Uid(user_id): Uid,
+) -> Result<(), ApiError> {
+    let users = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_all(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    let mut un_matched_student_user_ids = Vec::new();
+    let mut teacher_count = HashMap::new();
+
+    for user in users {
+        match user.type_info {
+            0 => {
+                un_matched_student_user_ids.push(user.id);
+            }
+            1 => {
+                let teacher_totals: i32 = sqlx::query_scalar("select count(*) from matchs where teacher_id = ? and status_info = 4")
+                    .bind(&user.id)
+                    .fetch_one(&pool)
+                    .await
+                    .map_err(ApiError::from)?;
+
+                teacher_count.insert(user.id, teacher_totals);
+            }
+            _ => {}
+        }
+    }
+
+    for un_matched_student_user_id in un_matched_student_user_ids {
+        for (teacher_id, total) in &teacher_count {
+            if *total < 6 {
+                sqlx::query("insert into matchs (student_id, teacher_id, status_info, turn_id) values (?, ?, 4, ?) ")
+                    .bind(un_matched_student_user_id)
+                    .bind(teacher_id)
+                    .bind(get_current_turn(&pool).await?.turn_id)
+                    .execute(&pool)
+                    .await?;
+            }
+        }
+    }
+
+    Ok(())
 }

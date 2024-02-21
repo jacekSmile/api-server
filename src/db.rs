@@ -9,7 +9,7 @@ pub async fn establish_connection() -> Pool<Sqlite> {
     pool
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Debug)]
 pub struct User {
     pub id: i32,
     pub name: String,

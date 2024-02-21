@@ -24,14 +24,6 @@ use anyhow::{anyhow, Result};
 async fn start_server() -> Result<()> {
     dotenv::dotenv().ok();
 
-    // tracing_subscriber::registry()
-    //     .with(
-    //         tracing_subscriber::EnvFilter::try_from_default_env()
-    //             .unwrap_or_else(|_| "example_consume_body_in_extractor_or_middleware=debug".into()),
-    //     )
-    //     .with(tracing_subscriber::fmt::layer())
-    //     .init();
-
     let log_file = rolling::daily("./logs", "debug")
         .with_max_level(tracing::Level::DEBUG);
 
@@ -70,6 +62,7 @@ async fn start_server() -> Result<()> {
         .route("/api/send_two_way_table", post(api::chouxiang::send_two_way_table))
         .route("/api/get_two_way_table", post(api::chouxiang::get_two_way_table))
         .route("/api/get_suggestions", get(api::info::get_suggestions))
+        .route("/api/start_second", get(api::chouxiang::start_second))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http()
             .make_span_with(trace::DefaultMakeSpan::new().level(Level::DEBUG))
