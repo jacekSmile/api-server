@@ -219,14 +219,14 @@ pub async fn get_suggestions (
     for suggestion in suggestions {
         suggestion_details.push(SuggestionDetail {
             who: if suggestion.isanonymous {
+                String::from("匿名")
+            } else {
                 sqlx::query_as::<_, User>("select * from users where id = ?")
                     .bind(&suggestion.user_id)
                     .fetch_one(&pool)
                     .await
                     .map_err(ApiError::from)?
                     .name
-            } else {
-                String::from("匿名")
             },
             title: suggestion.title,
             content: suggestion.content,
