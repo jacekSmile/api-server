@@ -10,7 +10,7 @@ use base64;
 
 use crate::db::User;
 
-use super::{jwt::{AuthError, Claims, Uid}, ApiError};
+use super::{jwt::{AuthError, Claims, Uid}, ApiError, image_encode};
 
 #[derive(Deserialize)]
 pub struct LoginPayload {
@@ -25,8 +25,6 @@ pub struct AuthBody {
     user_type: i32,
 }
 
-// User_info 记录用户信息
-// 里面有 Student_info, Teacher_info, Admin_info
 #[derive(Serialize, Deserialize)]
 pub enum UserInfo {
     Student(StudentInfo),
@@ -103,31 +101,23 @@ impl StudentInfo {
     }
 }
 
+fn add_json_value(key: &str, value: &String, mut target: Value) -> Value {
+    target.as_object_mut().unwrap().insert(String::from(key), Value::String(value.clone())).unwrap()
+}
+
 impl TeacherInfo {
     fn new(json_data: &String, image: &String) -> TeacherInfoWithImage {
-        let mut value: Result<Value, _> = serde_json::from_str(json_data);
-
-        if let Ok(obj) = value.as_mut() {
-            obj.as_object_mut()
-                .unwrap()
-                .insert("image".to_string(), Value::String(image.clone()));
-        }
-
-        serde_json::from_str(&value.unwrap().to_string()).unwrap()
+        let value: Value = serde_json::from_str(json_data).unwrap();
+        let value = add_json_value("image", image, value);
+        serde_json::from_str(&value.to_string()).unwrap()
     }
 }
 
 impl AdminInfo {
     fn new(json_data: &String, image: &String) -> Self {
-        let mut value: Result<Value, _> = serde_json::from_str(json_data);
-
-        if let Ok(obj) = value.as_mut() {
-            obj.as_object_mut()
-                .unwrap()
-                .insert("image".to_string(), Value::String(image.clone()));
-        }
-
-        serde_json::from_str(&value.unwrap().to_string()).unwrap()
+        let value: Value = serde_json::from_str(json_data).unwrap();
+        let value = add_json_value("image", image, value);
+        serde_json::from_str(&value.to_string()).unwrap()
     }
 }
 
@@ -179,13 +169,8 @@ pub async fn get_user_info(
         .fetch_one(&pool)
         .await
         .map_err(ApiError::from)?;
-    
-    #[allow(deprecated)]
-    let image = if user.image.is_empty() {
-        env::var("DEFAULT_IMAGE_DATA").expect("DEFAULT_IMAGE_DATA must be set")
-    } else {
-        base64::encode(&user.image)
-    };
+
+    let image = image_encode(&user.image, env::var("DEFAULT_IMAGE_DATA").expect("DEFAULT_IMAGE_DATA must be set"));
 
     match user.type_info {
         0 => {

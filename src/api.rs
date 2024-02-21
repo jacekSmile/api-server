@@ -18,7 +18,6 @@ pub enum ApiError {
     Internal(anyhow::Error),
 }
 
-// 设置默认的错误
 impl<E> From<E> for ApiError
 where
     E: Into<anyhow::Error>,
@@ -69,5 +68,14 @@ impl IntoResponse for ApiError {
                 (StatusCode::BAD_REQUEST, body).into_response()
             }
         }
+    }
+}
+
+pub fn image_encode(image_data: &Vec<u8>, default_image: String) -> String {
+    #[allow(deprecated)]
+    if image_data.is_empty() {
+        default_image
+    } else {
+        base64::encode(&image_data)
     }
 }

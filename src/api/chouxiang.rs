@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::{Match, Turn, User};
 
-use super::{jwt::Uid, user::{AdminInfo, StudentInfo, TeacherInfo, UserInfo}, ApiError};
+use super::{jwt::Uid, user::{AdminInfo, StudentInfo, TeacherInfo, UserInfo}, ApiError, image_encode};
 
 pub async fn get_current_turn (
     pool: &Pool<Sqlite>,
@@ -33,8 +33,7 @@ pub async fn get_current_turn (
             return Ok(turn_info);
         }
     }
-
-    // 如果在时间之外要特殊判断
+    
     let first_turn_info = sqlx::query_as::<_, Turn>("select * from turn where turn_id = 1")
         .fetch_one(pool)
         .await
@@ -133,12 +132,7 @@ pub async fn get_student_info (
                 .await
                 .map_err(ApiError::from)?;
 
-            #[allow(deprecated)]
-            let image = if user.image.is_empty() {
-                env::var("DEFAULT_IMAGE_DATA").expect("DEFAULT_IMAGE_DATA must be set")
-            } else {
-                base64::encode(&user.image)
-            };
+            let image = image_encode(&user.image, env::var("DEFAULT_IMAGE_DATA").expect("DEFAULT_IMAGE_DATA must be set"));
 
             Ok(Json(UserInfo::Student(StudentInfo::new(&student_info.information, &image, &student_info.account))))
         },
@@ -206,7 +200,6 @@ pub struct SignInfoResponse {
 
 pub async fn get_sign (
     State(pool): State<Pool<Sqlite>>,
-    // Uid(user_id): Uid,
     Json(payload): Json<SendSelectionIdPayload>,
 ) -> Result<Json<SignInfoResponse>, ApiError> {
     let match_record = sqlx::query_as::<_, Match>("select * from matchs where id = ?")

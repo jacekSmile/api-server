@@ -25,7 +25,7 @@ async fn start_server() -> Result<()> {
     dotenv::dotenv().ok();
 
     let log_file = rolling::daily("./logs", "debug")
-        .with_max_level(tracing::Level::DEBUG);
+        .with_max_level(Level::DEBUG);
 
     tracing_subscriber::fmt()
         .with_writer(log_file)
@@ -123,19 +123,15 @@ async fn shutdown_signal() {
     }
 }
 
-// middleware that shows how to consume the request body upfront
 async fn print_request_body(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
     let request = buffer_request_body(request).await?;
 
     Ok(next.run(request).await)
 }
 
-// the trick is to take the request apart, buffer the body, do what you need to do, then put
-// the request back together
 async fn buffer_request_body(request: Request) -> Result<Request, Response> {
     let (parts, body) = request.into_parts();
 
-    // this wont work if the body is an long running stream
     let bytes = body
         .collect()
         .await
@@ -151,10 +147,8 @@ fn do_thing_with_request_body(bytes: Bytes) {
     tracing::debug!(body = ?bytes);
 }
 
-// extractor that shows how to consume the request body upfront
 struct BufferRequestBody(Bytes);
 
-// we must implement `FromRequest` (and not `FromRequestParts`) to consume the body
 #[async_trait]
 impl<S> FromRequest<S> for BufferRequestBody
 where

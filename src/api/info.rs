@@ -237,8 +237,6 @@ pub async fn get_suggestions (
     Ok(Json(suggestion_details))
 }
 
-/// 测试当前是否在特定的时间区间内
-/// 时间区间用 12:00-14:00 这样的格式表示，多个时间区间用逗号分隔
 fn is_in_time_duration(time_duration: &str) -> bool {
     let now_time = chrono::Local::now();
     let now_time = now_time.time();
