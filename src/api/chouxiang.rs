@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::env;
 
 use axum::{extract::{Multipart, State}, Json};
@@ -602,23 +601,37 @@ pub async fn get_two_way_table (
     Ok(Json(two_way_table_info))
 }
 
-pub async fn start_second(
+#[derive(Serialize)]
+pub struct UnmatchedData {
+    pub students: Vec<(i32, String)>,
+    pub teachers: Vec<(i32, String, i32)>,
+}
+pub async fn get_unmatched (
     State(pool): State<Pool<Sqlite>>,
     Uid(user_id): Uid,
-) -> Result<(), ApiError> {
-    let users = sqlx::query_as::<_, User>("select * from users where id = ?")
+) -> Result<Json<UnmatchedData>, ApiError> {
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
         .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    if user.type_info != 2 {
+        return Err(ApiError::PermissionDenied);
+    }
+
+    let mut students: Vec<(i32, String)> = Vec::new();
+    let mut teachers: Vec<(i32, String, i32)> = Vec::new();
+
+    let users = sqlx::query_as::<_, User>("select * from users")
         .fetch_all(&pool)
         .await
         .map_err(ApiError::from)?;
 
-    let mut un_matched_student_user_ids = Vec::new();
-    let mut teacher_count = HashMap::new();
-
     for user in users {
         match user.type_info {
             0 => {
-                un_matched_student_user_ids.push(user.id);
+                students.push((user.id, user.name));
             }
             1 => {
                 let teacher_totals: i32 = sqlx::query_scalar("select count(*) from matchs where teacher_id = ? and status_info = 4")
@@ -627,23 +640,46 @@ pub async fn start_second(
                     .await
                     .map_err(ApiError::from)?;
 
-                teacher_count.insert(user.id, teacher_totals);
+                teachers.push((user.id, user.name, teacher_totals));
             }
             _ => {}
         }
     }
 
-    for un_matched_student_user_id in un_matched_student_user_ids {
-        for (teacher_id, total) in &teacher_count {
-            if *total < 6 {
-                sqlx::query("insert into matchs (student_id, teacher_id, status_info, turn_id) values (?, ?, 4, ?) ")
-                    .bind(un_matched_student_user_id)
-                    .bind(teacher_id)
-                    .bind(get_current_turn(&pool).await?.turn_id)
-                    .execute(&pool)
-                    .await?;
-            }
-        }
+    Ok(Json(UnmatchedData {
+        students,
+        teachers
+    }))
+}
+
+#[derive(Deserialize)]
+pub struct MatchedData {
+    pub student: (i32, String),
+    pub teacher: (i32, String),
+}
+
+pub async fn set_matched_data (
+    State(pool): State<Pool<Sqlite>>,
+    Uid(user_id): Uid,
+    Json(payload): Json<Vec<MatchedData>>
+) -> Result<(), ApiError> {
+    let user = sqlx::query_as::<_, User>("select * from users where id = ?")
+        .bind(&user_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(ApiError::from)?;
+
+    if user.type_info != 2 {
+        return Err(ApiError::PermissionDenied);
+    }
+
+    for match_info in payload {
+        sqlx::query("insert into matchs (student_id, teacher_id, status_info, turn_id) values (?, ?, 0, ?)")
+            .bind(match_info.student.0)
+            .bind(match_info.teacher.1)
+            .bind(get_current_turn(&pool).await?.turn_id)
+            .execute(&pool)
+            .await?;
     }
 
     Ok(())
