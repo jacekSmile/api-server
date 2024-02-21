@@ -1,5 +1,7 @@
 /target
 /.VSCodeCounter
 /logs
+/.idea
 Cargo.lock
 data.db*
+test*
