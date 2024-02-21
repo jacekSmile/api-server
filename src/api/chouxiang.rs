@@ -118,7 +118,7 @@ pub async fn get_student_info (
         return Err(ApiError::PermissionDenied);
     }
 
-    let match_record = sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ? and student_id = ?")
+    let match_record = sqlx::query_as::<_, Match>("select * from matchs where teacher_id = ? and id = ?")
         .bind(&user_id)
         .bind(payload.selection_id)
         .fetch_one(&pool)
@@ -252,8 +252,8 @@ pub async fn exam_selection (
             fail_status = 2;
         }
         2 => {
-            pass_status = 3;
-            fail_status = 4;
+            pass_status = 4;
+            fail_status = 3;
         }
         _ => {
             return Err(ApiError::PermissionDenied);
