@@ -2,7 +2,7 @@ use std::env;
 
 use axum::{extract::{Multipart, State}, Json};
 use chrono::NaiveDateTime;
-use sqlx::{Error, Pool, Sqlite};
+use sqlx::{Pool, Sqlite};
 use serde::{Deserialize, Serialize};
 
 use crate::db::{Match, Turn, User};
@@ -60,7 +60,7 @@ pub async fn get_current_turn (
     } else if now_time < second_end_datetime {
         Ok(second_turn_info)
     } else {
-        Ok(first_turn_info)
+        Ok(second_turn_info)
     }
 }
 
